@@ -2,6 +2,15 @@
 
 import { useState, useEffect } from 'react';
 
+interface RecordingMetadata {
+    prenom?: string;
+    nom?: string;
+    commune?: string;
+    email?: string;
+    telephone?: string;
+    timestamp?: string;
+}
+
 interface Recording {
     id: string;
     filename: string;
@@ -9,7 +18,7 @@ interface Recording {
     commune: string;
     timestamp: string;
     size: number;
-    metadata?: any;
+    metadata?: RecordingMetadata;
 }
 
 interface RecordingsListProps {

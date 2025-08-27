@@ -5,10 +5,10 @@ import os from 'os';
 
 export async function GET(
     request: NextRequest,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
-        const { id } = params;
+        const { id } = await params;
         const uploadDir = path.join(os.tmpdir(), 'vp-audio-uploads');
 
         // Trouver le fichier audio correspondant à cet ID (timestamp)

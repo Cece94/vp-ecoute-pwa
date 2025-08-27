@@ -3,6 +3,15 @@ import fs from 'fs';
 import path from 'path';
 import os from 'os';
 
+interface RecordingMetadata {
+    prenom: string;
+    nom: string;
+    commune: string;
+    email?: string;
+    telephone?: string;
+    timestamp?: string;
+}
+
 interface RecordingFile {
     id: string;
     filename: string;
@@ -11,7 +20,7 @@ interface RecordingFile {
     timestamp: string;
     size: number;
     duration?: number;
-    metadata?: any;
+    metadata?: RecordingMetadata;
 }
 
 export async function GET() {
