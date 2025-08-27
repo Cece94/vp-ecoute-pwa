@@ -24,3 +24,54 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Améliorer la visibilité des placeholders */
+input::placeholder {
+  color: #6b7280 !important;
+  /* text-gray-500 */
+  opacity: 1;
+}
+
+input:focus::placeholder {
+  color: #9ca3af !important;
+  /* text-gray-400 */
+}
+
+/* Animations pour les onglets */
+.tab-transition {
+  transition: all 0.2s ease-in-out;
+  cursor: pointer;
+}
+
+/* Amélioration des boutons de lecture audio */
+audio {
+  height: 32px;
+  width: 100%;
+}
+
+@media (min-width: 640px) {
+  audio {
+    height: 40px;
+  }
+}
+
+audio::-webkit-media-controls-panel {
+  background-color: #f9fafb;
+  border-radius: 6px;
+}
+
+/* Responsive pour les petits écrans */
+@media (max-width: 640px) {
+  .responsive-text {
+    font-size: 0.75rem;
+  }
+
+  .responsive-padding {
+    padding: 0.5rem;
+  }
+}
+
+/* Boutons de lecture audio */
+.play-button {
+  cursor: pointer;
+}
