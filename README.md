@@ -1,36 +1,111 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# VP Écoute - Application PWA pour Campagne d'Écoute Citoyenne
 
-## Getting Started
+Application web progressive (PWA) pour la collecte d'entretiens audio dans le cadre des campagnes d'écoute des Victoires Populaires.
 
-First, run the development server:
+## 🚀 Démarrage rapide
 
+### 1. Installation des dépendances
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 2. Configuration (optionnel)
+Pour utiliser Google Cloud Storage, copiez `env.example` vers `.env.local` et configurez :
+```bash
+cp env.example .env.local
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Éditez `.env.local` avec vos variables GCS :
+```env
+SERVICE_ACCOUNT_KEY_BASE64=votre_clé_base64
+GCS_BUCKET=votre-bucket-name
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+**Note :** Sans configuration GCS, l'app fonctionne en mode local (fichiers dans `/tmp/uploads`).
 
-## Learn More
+### 3. Lancement en développement
+```bash
+npm run dev
+```
+➡️ Ouvrez [http://localhost:3000](http://localhost:3000)
 
-To learn more about Next.js, take a look at the following resources:
+### 4. Build et déploiement
+```bash
+npm run build
+npm start
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 📱 Déploiement sur Vercel
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Déploiement automatique
+1. Connectez votre repo GitHub à Vercel
+2. Variables d'environnement dans Vercel (optionnel) :
+   - `SERVICE_ACCOUNT_KEY_BASE64` : Clé service account GCP en base64
+   - `GCS_BUCKET` : Nom du bucket Google Cloud Storage
 
-## Deploy on Vercel
+### Déploiement manuel
+```bash
+npm install -g vercel
+vercel --prod
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## 🔧 Variables d'environnement
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+| Variable | Description | Requis |
+|----------|-------------|---------|
+| `SERVICE_ACCOUNT_KEY_BASE64` | Clé de service GCP encodée en base64 | Non* |
+| `GCS_BUCKET` | Nom du bucket Google Cloud Storage | Non* |
+
+*\*Si non définies, l'application fonctionne en mode local*
+
+### Obtenir la clé de service en base64
+```bash
+# Linux/Mac
+cat service-account-key.json | base64 -w 0
+
+# Windows
+certutil -encode service-account-key.json temp.txt && findstr /v /c:- temp.txt
+```
+
+## 🎯 Fonctionnalités
+
+- ✅ **Interface mobile-first** : Optimisée smartphone
+- ✅ **PWA** : Installation possible sur l'écran d'accueil
+- ✅ **Enregistrement audio** : WebM mono 16kHz (optimal Speech-to-Text)
+- ✅ **Upload intelligent** : GCS si configuré, sinon local
+- ✅ **Validation RGPD** : Consentement obligatoire
+- ✅ **Offline-ready** : Service worker intégré
+
+## 🗂️ Structure
+
+```
+vp_audio/
+├── app/
+│   ├── api/upload/route.ts      # API endpoint upload
+│   ├── components/
+│   │   ├── AudioRecorder.tsx    # Composant enregistrement
+│   │   └── ParticipantForm.tsx  # Formulaire participant
+│   ├── page.tsx                 # Page principale
+│   └── layout.tsx               # Layout PWA
+├── public/
+│   ├── manifest.json            # Manifeste PWA
+│   └── sw.js                    # Service Worker
+└── package.json
+```
+
+## 🔍 Développement
+
+L'application suit un workflow en 3 étapes :
+1. **Formulaire** : Collecte des données personnelles + consentement
+2. **Enregistrement** : Audio WebM optimisé pour transcription
+3. **Upload** : Vers GCS ou stockage local selon configuration
+
+### Formats supportés
+- **Audio** : WebM (navigateurs modernes), fallback MP4
+- **Qualité** : 16kHz mono (optimal Google Speech-to-Text)
+- **Durée max** : 20 minutes recommandées
+
+### APIs utilisées
+- **MediaRecorder API** : Enregistrement natif navigateur
+- **FormData API** : Upload multipart
+- **Service Worker API** : Fonctionnement offline

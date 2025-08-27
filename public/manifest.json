@@ -1,0 +1,17 @@
+{
+    "name": "Victoires Populaires - Écoute Citoyenne",
+    "short_name": "VP Écoute",
+    "description": "Application de collecte d'entretiens audio pour la campagne d'écoute citoyenne",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#ffffff",
+    "theme_color": "#2563eb",
+    "orientation": "portrait",
+    "icons": [
+        {
+            "src": "/next.svg",
+            "sizes": "180x38",
+            "type": "image/svg+xml"
+        }
+    ]
+}

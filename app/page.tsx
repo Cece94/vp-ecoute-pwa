@@ -1,103 +1,248 @@
-import Image from "next/image";
+'use client';
+
+import { useState } from 'react';
+import ParticipantForm from './components/ParticipantForm';
+import AudioRecorder from './components/AudioRecorder';
+
+interface ParticipantData {
+  nom: string;
+  prenom: string;
+  commune: string;
+  email: string;
+  telephone: string;
+}
 
 export default function Home() {
-  return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const [step, setStep] = useState<'form' | 'recording' | 'uploading' | 'success'>('form');
+  const [participantData, setParticipantData] = useState<ParticipantData | null>(null);
+  const [isRecording, setIsRecording] = useState(false);
+  const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
+  const [uploadResult, setUploadResult] = useState<any>(null);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  const handleFormSubmit = (data: ParticipantData) => {
+    setParticipantData(data);
+    setStep('recording');
+  };
+
+  const handleStartRecording = () => {
+    setIsRecording(true);
+  };
+
+  const handleStopRecording = () => {
+    setIsRecording(false);
+  };
+
+  const handleRecordingComplete = (blob: Blob) => {
+    setAudioBlob(blob);
+  };
+
+  const handleUpload = async () => {
+    if (!audioBlob || !participantData) return;
+
+    setStep('uploading');
+
+    try {
+      const formData = new FormData();
+      formData.append('audio', audioBlob, 'entretien.webm');
+      formData.append('metadata', JSON.stringify(participantData));
+
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        setUploadResult(result);
+        setStep('success');
+      } else {
+        throw new Error(result.error || 'Erreur upload');
+      }
+    } catch (error) {
+      console.error('Erreur upload:', error);
+      alert('Erreur lors de l\'envoi. Veuillez réessayer.');
+      setStep('recording');
+    }
+  };
+
+  const handleReset = () => {
+    setStep('form');
+    setParticipantData(null);
+    setIsRecording(false);
+    setAudioBlob(null);
+    setUploadResult(null);
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50 py-8 px-4">
+      <div className="max-w-2xl mx-auto">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            Victoires Populaires
+          </h1>
+          <h2 className="text-xl text-blue-600 mb-4">
+            Campagne d'Écoute Citoyenne
+          </h2>
+          <p className="text-gray-600">
+            Partagez votre voix, contribuez au changement
+          </p>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+
+        {/* Indicateur d'étapes */}
+        <div className="flex justify-center mb-8">
+          <div className="flex items-center space-x-4">
+            <div className={`flex items-center ${step === 'form' ? 'text-blue-600' : step !== 'form' ? 'text-green-600' : 'text-gray-400'}`}>
+              <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center ${
+                step === 'form' ? 'border-blue-600 bg-blue-50' : 
+                step !== 'form' ? 'border-green-600 bg-green-50' : 'border-gray-300'
+              }`}>
+                {step !== 'form' ? '✓' : '1'}
+              </div>
+              <span className="ml-2 text-sm font-medium">Informations</span>
+            </div>
+            
+            <div className="w-8 h-0.5 bg-gray-300"></div>
+            
+            <div className={`flex items-center ${
+              step === 'recording' ? 'text-blue-600' : 
+              ['uploading', 'success'].includes(step) ? 'text-green-600' : 'text-gray-400'
+            }`}>
+              <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center ${
+                step === 'recording' ? 'border-blue-600 bg-blue-50' : 
+                ['uploading', 'success'].includes(step) ? 'border-green-600 bg-green-50' : 'border-gray-300'
+              }`}>
+                {['uploading', 'success'].includes(step) ? '✓' : '2'}
+              </div>
+              <span className="ml-2 text-sm font-medium">Enregistrement</span>
+            </div>
+
+            <div className="w-8 h-0.5 bg-gray-300"></div>
+            
+            <div className={`flex items-center ${step === 'success' ? 'text-green-600' : 'text-gray-400'}`}>
+              <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center ${
+                step === 'success' ? 'border-green-600 bg-green-50' : 'border-gray-300'
+              }`}>
+                {step === 'success' ? '✓' : '3'}
+              </div>
+              <span className="ml-2 text-sm font-medium">Terminé</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Contenu principal */}
+        <div className="bg-white rounded-lg shadow-lg p-6">
+          {step === 'form' && (
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                Vos informations
+              </h3>
+              <ParticipantForm onSubmit={handleFormSubmit} />
+            </div>
+          )}
+
+          {step === 'recording' && (
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                Enregistrement de l'entretien
+              </h3>
+              {participantData && (
+                <div className="bg-gray-50 rounded-lg p-4 mb-6">
+                  <p className="text-sm text-gray-600">
+                    <strong>Participant :</strong> {participantData.prenom} {participantData.nom} - {participantData.commune}
+                  </p>
+                </div>
+              )}
+              
+              <AudioRecorder
+                onRecordingComplete={handleRecordingComplete}
+                isRecording={isRecording}
+                onStartRecording={handleStartRecording}
+                onStopRecording={handleStopRecording}
+              />
+
+              {audioBlob && !isRecording && (
+                <div className="mt-6 text-center">
+                  <p className="text-green-600 mb-4">
+                    ✓ Enregistrement terminé ({Math.round(audioBlob.size / 1024)} KB)
+                  </p>
+                  <div className="flex gap-4 justify-center">
+                    <button
+                      onClick={() => {
+                        setAudioBlob(null);
+                        setIsRecording(false);
+                      }}
+                      className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                    >
+                      Recommencer
+                    </button>
+                    <button
+                      onClick={handleUpload}
+                      className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                    >
+                      Envoyer l'entretien
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {step === 'uploading' && (
+            <div className="text-center py-8">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                Envoi en cours...
+              </h3>
+              <p className="text-gray-600">
+                Votre entretien est en cours d'upload, veuillez patienter.
+              </p>
+            </div>
+          )}
+
+          {step === 'success' && (
+            <div className="text-center py-8">
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <span className="text-2xl text-green-600">✓</span>
+              </div>
+              <h3 className="text-lg font-semibold text-green-900 mb-2">
+                Entretien envoyé avec succès !
+              </h3>
+              <p className="text-gray-600 mb-4">
+                Merci {participantData?.prenom} pour votre participation à cette campagne d'écoute.
+              </p>
+              {uploadResult && (
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6 text-left">
+                  <p className="text-sm text-green-800">
+                    <strong>Statut :</strong> {uploadResult.message}
+                  </p>
+                  {uploadResult.url && (
+                    <p className="text-xs text-green-700 mt-1 break-all">
+                      <strong>Référence :</strong> {uploadResult.url}
+                    </p>
+                  )}
+                </div>
+              )}
+              <button
+                onClick={handleReset}
+                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Nouvel entretien
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="text-center mt-8 text-sm text-gray-500">
+          <p>
+            Vos données sont protégées et traitées conformément au RGPD.
+            <br />
+            Contact : contact@victoires-populaires.fr
+          </p>
+        </div>
+      </div>
     </div>
   );
 }
