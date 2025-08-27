@@ -3,17 +3,25 @@
 import { useState, useRef, useEffect } from 'react';
 
 interface AudioRecorderProps {
-    onRecordingComplete: (audioBlob: Blob) => void;
+    onRecordingComplete: (audioBlob: Blob, shouldRedirectHome?: boolean) => void;
     isRecording: boolean;
+    isPaused: boolean;
     onStartRecording: () => void;
     onStopRecording: () => void;
+    onPauseRecording: () => void;
+    onResumeRecording: () => void;
+    onNewRecording: () => void;
 }
 
 export default function AudioRecorder({
     onRecordingComplete,
     isRecording,
+    isPaused,
     onStartRecording,
-    onStopRecording
+    onStopRecording,
+    onPauseRecording,
+    onResumeRecording,
+    onNewRecording
 }: AudioRecorderProps) {
     const [duration, setDuration] = useState(0);
     const [hasPermission, setHasPermission] = useState<boolean | null>(null);
@@ -21,6 +29,7 @@ export default function AudioRecorder({
     const streamRef = useRef<MediaStream | null>(null);
     const intervalRef = useRef<NodeJS.Timeout | null>(null);
     const chunksRef = useRef<Blob[]>([]);
+    const accumulatedChunksRef = useRef<Blob[]>([]); // Pour stocker tous les chunks lors des reprises
 
     useEffect(() => {
         // Vérifier les permissions au montage
@@ -81,10 +90,10 @@ export default function AudioRecorder({
             };
 
             mediaRecorder.onstop = () => {
-                const audioBlob = new Blob(chunksRef.current, { type: 'audio/webm' });
-                onRecordingComplete(audioBlob);
+                // Ajouter les nouveaux chunks aux chunks accumulés
+                accumulatedChunksRef.current = [...accumulatedChunksRef.current, ...chunksRef.current];
 
-                // Nettoyage
+                // Nettoyage du stream
                 if (streamRef.current) {
                     streamRef.current.getTracks().forEach(track => track.stop());
                 }
@@ -93,8 +102,11 @@ export default function AudioRecorder({
             mediaRecorder.start(1000); // Collecte de données chaque seconde
             onStartRecording();
 
-            // Démarrer le compteur
-            setDuration(0);
+            // Démarrer le compteur (conserver la durée si c'est une reprise)
+            if (!isPaused) {
+                setDuration(0);
+                accumulatedChunksRef.current = []; // Reset pour un nouvel enregistrement
+            }
             intervalRef.current = setInterval(() => {
                 setDuration(prev => prev + 1);
             }, 1000);
@@ -102,6 +114,18 @@ export default function AudioRecorder({
         } catch (error) {
             console.error('Erreur démarrage enregistrement:', error);
             setHasPermission(false);
+        }
+    };
+
+    const pauseRecording = () => {
+        if (mediaRecorderRef.current && isRecording) {
+            mediaRecorderRef.current.stop();
+            onPauseRecording();
+
+            if (intervalRef.current) {
+                clearInterval(intervalRef.current);
+                intervalRef.current = null;
+            }
         }
     };
 
@@ -115,6 +139,33 @@ export default function AudioRecorder({
                 intervalRef.current = null;
             }
         }
+
+        // Créer le blob final avec tous les chunks accumulés
+        const audioBlob = new Blob(accumulatedChunksRef.current, { type: 'audio/webm' });
+        onRecordingComplete(audioBlob);
+    };
+
+    const finalizeRecording = () => {
+        // Terminer définitivement l'enregistrement depuis l'état pausé
+        onStopRecording();
+
+        // Créer le blob final avec tous les chunks accumulés
+        const audioBlob = new Blob(accumulatedChunksRef.current, { type: 'audio/webm' });
+        onRecordingComplete(audioBlob, true); // true = rediriger vers l'accueil
+    };
+
+    const resumeRecording = () => {
+        startRecording();
+        onResumeRecording();
+    };
+
+    const newRecording = () => {
+        // Reset complet
+        setDuration(0);
+        accumulatedChunksRef.current = [];
+        chunksRef.current = [];
+        startRecording();
+        onNewRecording();
     };
 
     const formatDuration = (seconds: number) => {
@@ -170,7 +221,7 @@ export default function AudioRecorder({
                 </div>
             )}
 
-            {!isRecording ? (
+            {!isRecording && !isPaused ? (
                 <button
                     onClick={startRecording}
                     className="bg-blue-600 text-white px-8 py-4 rounded-full hover:bg-blue-700 transition-colors text-lg font-medium flex items-center justify-center mx-auto"
@@ -178,15 +229,49 @@ export default function AudioRecorder({
                     <div className="w-4 h-4 bg-white rounded-full mr-3"></div>
                     Démarrer l&apos;enregistrement
                 </button>
-            ) : (
+            ) : isRecording ? (
                 <button
-                    onClick={stopRecording}
-                    className="bg-red-600 text-white px-8 py-4 rounded-full hover:bg-red-700 transition-colors text-lg font-medium flex items-center justify-center mx-auto"
+                    onClick={pauseRecording}
+                    className="bg-orange-600 text-white px-8 py-4 rounded-full hover:bg-orange-700 transition-colors text-lg font-medium flex items-center justify-center mx-auto"
                 >
                     <div className="w-4 h-4 bg-white rounded-sm mr-3"></div>
-                    Arrêter l&apos;enregistrement
+                    Mettre en pause
                 </button>
-            )}
+            ) : isPaused ? (
+                <div className="space-y-4">
+                    <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 text-center">
+                        <p className="text-orange-700 font-medium mb-2">
+                            ⏸️ Enregistrement en pause
+                        </p>
+                        <p className="text-sm text-orange-600">
+                            Durée actuelle : {formatDuration(duration)}
+                        </p>
+                    </div>
+                    <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                        <button
+                            onClick={resumeRecording}
+                            className="bg-green-600 text-white px-6 py-3 rounded-full hover:bg-green-700 transition-colors font-medium flex items-center justify-center"
+                        >
+                            <div className="w-4 h-4 bg-white rounded-full mr-3"></div>
+                            Reprendre l&apos;enregistrement
+                        </button>
+                        <button
+                            onClick={newRecording}
+                            className="bg-blue-600 text-white px-6 py-3 rounded-full hover:bg-blue-700 transition-colors font-medium flex items-center justify-center"
+                        >
+                            <div className="w-4 h-4 bg-white rounded-full mr-3"></div>
+                            Nouvel enregistrement
+                        </button>
+                        <button
+                            onClick={finalizeRecording}
+                            className="bg-red-600 text-white px-6 py-3 rounded-full hover:bg-red-700 transition-colors font-medium flex items-center justify-center"
+                        >
+                            <div className="w-4 h-4 bg-white rounded-sm mr-3"></div>
+                            Terminer
+                        </button>
+                    </div>
+                </div>
+            ) : null}
 
             <p className="text-sm text-gray-500 mt-4">
                 Format: WebM mono 16kHz (optimisé pour la transcription)

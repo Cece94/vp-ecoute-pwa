@@ -4,6 +4,8 @@ import { useState } from 'react';
 import ParticipantForm from './components/ParticipantForm';
 import AudioRecorder from './components/AudioRecorder';
 import RecordingsList from './components/RecordingsList';
+import Toast from './components/Toast';
+import { useToast } from './hooks/useToast';
 
 interface ParticipantData {
   nom: string;
@@ -18,8 +20,10 @@ export default function Home() {
   const [step, setStep] = useState<'form' | 'recording' | 'uploading' | 'success'>('form');
   const [participantData, setParticipantData] = useState<ParticipantData | null>(null);
   const [isRecording, setIsRecording] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
   const [uploadResult, setUploadResult] = useState<{ message: string; url?: string } | null>(null);
+  const { toasts, removeToast, showSuccess, showError } = useToast();
 
   const handleFormSubmit = (data: ParticipantData) => {
     setParticipantData(data);
@@ -28,14 +32,62 @@ export default function Home() {
 
   const handleStartRecording = () => {
     setIsRecording(true);
+    setIsPaused(false);
   };
 
   const handleStopRecording = () => {
     setIsRecording(false);
+    setIsPaused(false);
   };
 
-  const handleRecordingComplete = (blob: Blob) => {
+  const handlePauseRecording = () => {
+    setIsRecording(false);
+    setIsPaused(true);
+  };
+
+  const handleResumeRecording = () => {
+    setIsRecording(true);
+    setIsPaused(false);
+  };
+
+  const handleNewRecording = () => {
+    setIsRecording(true);
+    setIsPaused(false);
+    setAudioBlob(null); // Reset l'audio blob pour un nouvel enregistrement
+  };
+
+  const handleRecordingComplete = async (blob: Blob, shouldRedirectHome = false) => {
     setAudioBlob(blob);
+
+    // Si c'est un "Terminer" depuis l'état pausé, sauvegarder puis rediriger
+    if (shouldRedirectHome && participantData) {
+      try {
+        setStep('uploading');
+
+        const formData = new FormData();
+        formData.append('audio', blob, 'entretien.webm');
+        formData.append('metadata', JSON.stringify(participantData));
+
+        const response = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData,
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+          // Sauvegarde réussie, afficher le toast et rediriger vers l'accueil
+          showSuccess('Enregistrement sauvegardé avec succès !');
+          handleReset();
+        } else {
+          throw new Error(result.error || 'Erreur upload');
+        }
+      } catch (error) {
+        console.error('Erreur upload:', error);
+        alert('Erreur lors de l\'envoi. Veuillez réessayer.');
+        setStep('recording');
+      }
+    }
   };
 
   const handleUpload = async () => {
@@ -58,6 +110,7 @@ export default function Home() {
       if (response.ok) {
         setUploadResult(result);
         setStep('success');
+        showSuccess('Enregistrement envoyé avec succès !');
       } else {
         throw new Error(result.error || 'Erreur upload');
       }
@@ -72,6 +125,7 @@ export default function Home() {
     setStep('form');
     setParticipantData(null);
     setIsRecording(false);
+    setIsPaused(false);
     setAudioBlob(null);
     setUploadResult(null);
     setActiveTab('recording');
@@ -175,7 +229,13 @@ export default function Home() {
         {/* Contenu principal */}
         <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6">
           {activeTab === 'archives' ? (
-            <RecordingsList onRefresh={() => { }} />
+            <RecordingsList
+              onRefresh={() => { }}
+              onShowToast={(message, type) => {
+                if (type === 'success') showSuccess(message);
+                else if (type === 'error') showError(message);
+              }}
+            />
           ) : (
             <>
               {step === 'form' && (
@@ -203,11 +263,15 @@ export default function Home() {
                   <AudioRecorder
                     onRecordingComplete={handleRecordingComplete}
                     isRecording={isRecording}
+                    isPaused={isPaused}
                     onStartRecording={handleStartRecording}
                     onStopRecording={handleStopRecording}
+                    onPauseRecording={handlePauseRecording}
+                    onResumeRecording={handleResumeRecording}
+                    onNewRecording={handleNewRecording}
                   />
 
-                  {audioBlob && !isRecording && (
+                  {audioBlob && !isRecording && !isPaused && (
                     <div className="mt-6 text-center">
                       <p className="text-green-600 mb-4">
                         ✓ Enregistrement terminé ({Math.round(audioBlob.size / 1024)} KB)
@@ -297,6 +361,19 @@ export default function Home() {
             Contact : contact@victoires-populaires.fr
           </p>
         </div>
+      </div>
+
+      {/* Toasts */}
+      <div className="fixed top-20 right-4 z-50 pointer-events-none">
+        {toasts.map((toast) => (
+          <div key={toast.id} className="pointer-events-auto">
+            <Toast
+              message={toast.message}
+              type={toast.type}
+              onClose={() => removeToast(toast.id)}
+            />
+          </div>
+        ))}
       </div>
     </div>
   );

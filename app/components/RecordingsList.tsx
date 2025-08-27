@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import ConfirmationDialog from './ConfirmationDialog';
 
 interface RecordingMetadata {
     prenom?: string;
@@ -23,13 +24,24 @@ interface Recording {
 
 interface RecordingsListProps {
     onRefresh?: () => void;
+    onShowToast?: (message: string, type: 'success' | 'error' | 'info') => void;
 }
 
-export default function RecordingsList({ onRefresh }: RecordingsListProps) {
+export default function RecordingsList({ onRefresh, onShowToast }: RecordingsListProps) {
     const [recordings, setRecordings] = useState<Recording[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [playingId, setPlayingId] = useState<string | null>(null);
+    const [deletingId, setDeletingId] = useState<string | null>(null);
+    const [deleteDialog, setDeleteDialog] = useState<{
+        isOpen: boolean;
+        recordingId: string;
+        participantName: string;
+    }>({
+        isOpen: false,
+        recordingId: '',
+        participantName: ''
+    });
 
     const fetchRecordings = async () => {
         try {
@@ -38,7 +50,14 @@ export default function RecordingsList({ onRefresh }: RecordingsListProps) {
             const data = await response.json();
 
             if (response.ok) {
-                setRecordings(data.recordings);
+                // Trier les enregistrements par timestamp décroissant (plus récent en haut)
+                const sortedRecordings = data.recordings.sort((a: Recording, b: Recording) => {
+                    // Convertir les timestamps en dates pour la comparaison
+                    const dateA = new Date(a.timestamp.replace(/T(\d{2})-(\d{2})-(\d{2})-(\d{3})Z/, 'T$1:$2:$3.$4Z'));
+                    const dateB = new Date(b.timestamp.replace(/T(\d{2})-(\d{2})-(\d{2})-(\d{3})Z/, 'T$1:$2:$3.$4Z'));
+                    return dateB.getTime() - dateA.getTime();
+                });
+                setRecordings(sortedRecordings);
                 setError(null);
             } else {
                 setError(data.error || 'Erreur lors du chargement');
@@ -123,12 +142,65 @@ export default function RecordingsList({ onRefresh }: RecordingsListProps) {
             setPlayingId(null);
         } else {
             setPlayingId(recordingId);
+            // Forcer la lecture automatique après que l'élément audio soit rendu
+            setTimeout(() => {
+                const audioElement = document.querySelector(`audio[src="/api/recordings/${recordingId}"]`) as HTMLAudioElement;
+                if (audioElement) {
+                    audioElement.play().catch(console.error);
+                }
+            }, 100);
         }
     };
 
     const handleRefresh = () => {
         fetchRecordings();
         onRefresh?.();
+    };
+
+    const handleDeleteClick = (recordingId: string, participantName: string) => {
+        setDeleteDialog({
+            isOpen: true,
+            recordingId,
+            participantName
+        });
+    };
+
+    const handleDeleteConfirm = async () => {
+        const { recordingId, participantName } = deleteDialog;
+
+        try {
+            setDeletingId(recordingId);
+            setDeleteDialog({ isOpen: false, recordingId: '', participantName: '' });
+
+            const response = await fetch(`/api/recordings/${recordingId}`, {
+                method: 'DELETE',
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                // Rafraîchir la liste des enregistrements
+                fetchRecordings();
+                onShowToast?.(
+                    `Enregistrement de ${participantName} supprimé avec succès`,
+                    'success'
+                );
+            } else {
+                throw new Error(result.error || 'Erreur lors de la suppression');
+            }
+        } catch (error) {
+            console.error('Erreur suppression:', error);
+            onShowToast?.(
+                `Erreur lors de la suppression de l'enregistrement : ${error instanceof Error ? error.message : 'Erreur inconnue'}`,
+                'error'
+            );
+        } finally {
+            setDeletingId(null);
+        }
+    };
+
+    const handleDeleteCancel = () => {
+        setDeleteDialog({ isOpen: false, recordingId: '', participantName: '' });
     };
 
     if (loading) {
@@ -240,13 +312,29 @@ export default function RecordingsList({ onRefresh }: RecordingsListProps) {
                                 )}
                             </div>
 
-                            <div className="text-right text-xs sm:text-sm text-gray-500 flex-shrink-0">
-                                <div>{formatSize(recording.size)}</div>
-                                {recording.metadata?.email && (
-                                    <div className="mt-1 text-xs text-gray-400 truncate max-w-24 sm:max-w-32">
-                                        {recording.metadata.email}
-                                    </div>
-                                )}
+                            <div className="flex flex-col items-end gap-2">
+                                <div className="text-right text-xs sm:text-sm text-gray-500 flex-shrink-0">
+                                    <div>{formatSize(recording.size)}</div>
+                                    {recording.metadata?.email && (
+                                        <div className="mt-1 text-xs text-gray-400 truncate max-w-24 sm:max-w-32">
+                                            {recording.metadata.email}
+                                        </div>
+                                    )}
+                                </div>
+                                <button
+                                    onClick={() => handleDeleteClick(recording.id, recording.participant)}
+                                    disabled={deletingId === recording.id}
+                                    className="text-red-600 hover:text-red-800 hover:bg-red-50 p-1 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                                    title="Supprimer cet enregistrement"
+                                >
+                                    {deletingId === recording.id ? (
+                                        <div className="animate-spin w-4 h-4 border-2 border-red-600 border-t-transparent rounded-full"></div>
+                                    ) : (
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                        </svg>
+                                    )}
+                                </button>
                             </div>
                         </div>
 
@@ -267,6 +355,18 @@ export default function RecordingsList({ onRefresh }: RecordingsListProps) {
                     </div>
                 ))}
             </div>
+
+            {/* Dialog de confirmation de suppression */}
+            <ConfirmationDialog
+                isOpen={deleteDialog.isOpen}
+                title="Supprimer l'enregistrement"
+                message={`Êtes-vous sûr de vouloir supprimer l'enregistrement de ${deleteDialog.participantName} ? Cette action est irréversible.`}
+                confirmText="Supprimer"
+                cancelText="Annuler"
+                onConfirm={handleDeleteConfirm}
+                onCancel={handleDeleteCancel}
+                isDestructive={true}
+            />
         </div>
     );
 }
