@@ -139,7 +139,7 @@ export default function AudioRecorder({
                     ⚠️ Permission microphone requise
                 </p>
                 <p className="text-sm text-red-600 mb-3">
-                    Autorisez l'accès au microphone pour enregistrer l'entretien
+                    Autorisez l&apos;accès au microphone pour enregistrer l&apos;entretien
                 </p>
                 <button
                     onClick={checkMicrophonePermission}
@@ -176,7 +176,7 @@ export default function AudioRecorder({
                     className="bg-blue-600 text-white px-8 py-4 rounded-full hover:bg-blue-700 transition-colors text-lg font-medium flex items-center justify-center mx-auto"
                 >
                     <div className="w-4 h-4 bg-white rounded-full mr-3"></div>
-                    Démarrer l'enregistrement
+                    Démarrer l&apos;enregistrement
                 </button>
             ) : (
                 <button
@@ -184,7 +184,7 @@ export default function AudioRecorder({
                     className="bg-red-600 text-white px-8 py-4 rounded-full hover:bg-red-700 transition-colors text-lg font-medium flex items-center justify-center mx-auto"
                 >
                     <div className="w-4 h-4 bg-white rounded-sm mr-3"></div>
-                    Arrêter l'enregistrement
+                    Arrêter l&apos;enregistrement
                 </button>
             )}
 

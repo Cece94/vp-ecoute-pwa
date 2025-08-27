@@ -17,7 +17,7 @@ export default function Home() {
   const [participantData, setParticipantData] = useState<ParticipantData | null>(null);
   const [isRecording, setIsRecording] = useState(false);
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
-  const [uploadResult, setUploadResult] = useState<any>(null);
+  const [uploadResult, setUploadResult] = useState<{ message: string; url?: string } | null>(null);
 
   const handleFormSubmit = (data: ParticipantData) => {
     setParticipantData(data);
@@ -83,7 +83,7 @@ export default function Home() {
             Victoires Populaires
           </h1>
           <h2 className="text-xl text-blue-600 mb-4">
-            Campagne d'Écoute Citoyenne
+            Campagne d&apos;Écoute Citoyenne
           </h2>
           <p className="text-gray-600">
             Partagez votre voix, contribuez au changement
@@ -93,37 +93,32 @@ export default function Home() {
         {/* Indicateur d'étapes */}
         <div className="flex justify-center mb-8">
           <div className="flex items-center space-x-4">
-            <div className={`flex items-center ${step === 'form' ? 'text-blue-600' : step !== 'form' ? 'text-green-600' : 'text-gray-400'}`}>
-              <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center ${
-                step === 'form' ? 'border-blue-600 bg-blue-50' : 
-                step !== 'form' ? 'border-green-600 bg-green-50' : 'border-gray-300'
-              }`}>
+            <div className={`flex items-center ${step === 'form' ? 'text-blue-600' : 'text-green-600'}`}>
+              <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center ${step === 'form' ? 'border-blue-600 bg-blue-50' : 'border-green-600 bg-green-50'
+                }`}>
                 {step !== 'form' ? '✓' : '1'}
               </div>
               <span className="ml-2 text-sm font-medium">Informations</span>
             </div>
-            
+
             <div className="w-8 h-0.5 bg-gray-300"></div>
-            
-            <div className={`flex items-center ${
-              step === 'recording' ? 'text-blue-600' : 
+
+            <div className={`flex items-center ${step === 'recording' ? 'text-blue-600' :
               ['uploading', 'success'].includes(step) ? 'text-green-600' : 'text-gray-400'
-            }`}>
-              <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center ${
-                step === 'recording' ? 'border-blue-600 bg-blue-50' : 
-                ['uploading', 'success'].includes(step) ? 'border-green-600 bg-green-50' : 'border-gray-300'
               }`}>
+              <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center ${step === 'recording' ? 'border-blue-600 bg-blue-50' :
+                ['uploading', 'success'].includes(step) ? 'border-green-600 bg-green-50' : 'border-gray-300'
+                }`}>
                 {['uploading', 'success'].includes(step) ? '✓' : '2'}
               </div>
               <span className="ml-2 text-sm font-medium">Enregistrement</span>
             </div>
 
             <div className="w-8 h-0.5 bg-gray-300"></div>
-            
+
             <div className={`flex items-center ${step === 'success' ? 'text-green-600' : 'text-gray-400'}`}>
-              <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center ${
-                step === 'success' ? 'border-green-600 bg-green-50' : 'border-gray-300'
-              }`}>
+              <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center ${step === 'success' ? 'border-green-600 bg-green-50' : 'border-gray-300'
+                }`}>
                 {step === 'success' ? '✓' : '3'}
               </div>
               <span className="ml-2 text-sm font-medium">Terminé</span>
@@ -145,7 +140,7 @@ export default function Home() {
           {step === 'recording' && (
             <div>
               <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                Enregistrement de l'entretien
+                Enregistrement de l&apos;entretien
               </h3>
               {participantData && (
                 <div className="bg-gray-50 rounded-lg p-4 mb-6">
@@ -154,7 +149,7 @@ export default function Home() {
                   </p>
                 </div>
               )}
-              
+
               <AudioRecorder
                 onRecordingComplete={handleRecordingComplete}
                 isRecording={isRecording}
@@ -181,7 +176,7 @@ export default function Home() {
                       onClick={handleUpload}
                       className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
                     >
-                      Envoyer l'entretien
+                      Envoyer l&apos;entretien
                     </button>
                   </div>
                 </div>
@@ -196,7 +191,7 @@ export default function Home() {
                 Envoi en cours...
               </h3>
               <p className="text-gray-600">
-                Votre entretien est en cours d'upload, veuillez patienter.
+                Votre entretien est en cours d&apos;upload, veuillez patienter.
               </p>
             </div>
           )}
@@ -210,7 +205,7 @@ export default function Home() {
                 Entretien envoyé avec succès !
               </h3>
               <p className="text-gray-600 mb-4">
-                Merci {participantData?.prenom} pour votre participation à cette campagne d'écoute.
+                Merci {participantData?.prenom} pour votre participation à cette campagne d&apos;écoute.
               </p>
               {uploadResult && (
                 <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6 text-left">

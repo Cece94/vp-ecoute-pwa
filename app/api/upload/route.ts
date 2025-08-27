@@ -1,8 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Storage } from '@google-cloud/storage';
-import formidable from 'formidable';
 import fs from 'fs';
 import path from 'path';
+
+interface TempFile {
+    filepath: string;
+    originalFilename: string;
+    mimetype: string;
+}
+
+interface ParticipantMetadata {
+    nom: string;
+    prenom: string;
+    commune: string;
+    email: string;
+    telephone: string;
+}
+
+interface GCSConfig {
+    storage: Storage;
+    bucketName: string;
+}
 
 // Configuration GCS
 const initGCS = () => {
@@ -28,7 +46,7 @@ const initGCS = () => {
 };
 
 // Fonction pour sauvegarder localement (fallback)
-const saveLocally = async (file: any, metadata: any) => {
+const saveLocally = async (file: TempFile, metadata: ParticipantMetadata) => {
     const uploadDir = path.join(process.cwd(), 'tmp', 'uploads');
 
     // Créer le dossier s'il n'existe pas
@@ -61,7 +79,7 @@ const saveLocally = async (file: any, metadata: any) => {
 };
 
 // Fonction pour uploader vers GCS
-const uploadToGCS = async (file: any, metadata: any, gcsConfig: any) => {
+const uploadToGCS = async (file: TempFile, metadata: ParticipantMetadata, gcsConfig: GCSConfig) => {
     const { storage, bucketName } = gcsConfig;
     const bucket = storage.bucket(bucketName);
 

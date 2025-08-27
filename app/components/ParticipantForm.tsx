@@ -175,7 +175,7 @@ export default function ParticipantForm({ onSubmit, disabled = false }: Particip
                         className="mt-1 mr-3 h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                     />
                     <label htmlFor="consent" className="text-sm text-gray-700">
-                        <strong>Consentement RGPD :</strong> J'accepte que mes données personnelles et mon enregistrement audio soient collectés et traités par les Victoires Populaires dans le cadre de cette campagne d'écoute citoyenne. Ces données seront conservées 2 ans maximum et peuvent être supprimées sur demande.
+                        <strong>Consentement RGPD :</strong> J&apos;accepte que mes données personnelles et mon enregistrement audio soient collectés et traités par les Victoires Populaires dans le cadre de cette campagne d&apos;écoute citoyenne. Ces données seront conservées 2 ans maximum et peuvent être supprimées sur demande.
                     </label>
                 </div>
             </div>
