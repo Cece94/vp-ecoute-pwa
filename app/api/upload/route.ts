@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { Storage } from '@google-cloud/storage';
 import fs from 'fs';
 import path from 'path';
+import os from 'os';
 
 interface TempFile {
     filepath: string;
@@ -47,7 +48,8 @@ const initGCS = () => {
 
 // Fonction pour sauvegarder localement (fallback)
 const saveLocally = async (file: TempFile, metadata: ParticipantMetadata) => {
-    const uploadDir = path.join(process.cwd(), 'tmp', 'uploads');
+    // Utiliser le répertoire temporaire système (compatible Vercel)
+    const uploadDir = path.join(os.tmpdir(), 'vp-audio-uploads');
 
     // Créer le dossier s'il n'existe pas
     if (!fs.existsSync(uploadDir)) {
@@ -73,7 +75,7 @@ const saveLocally = async (file: TempFile, metadata: ParticipantMetadata) => {
 
     return {
         success: true,
-        url: `/tmp/uploads/${fileName}`,
+        url: filePath, // Chemin absolu pour débogage, non accessible via web
         message: 'Fichier sauvegardé localement (mode démo)'
     };
 };
@@ -158,16 +160,13 @@ export async function POST(request: NextRequest) {
             }
         }
 
-        // Créer un fichier temporaire
+        // Créer un fichier temporaire dans le répertoire temporaire système
         const bytes = await audioFile.arrayBuffer();
         const buffer = Buffer.from(bytes);
 
-        const tempDir = path.join(process.cwd(), 'tmp');
-        if (!fs.existsSync(tempDir)) {
-            fs.mkdirSync(tempDir, { recursive: true });
-        }
-
-        const tempFilePath = path.join(tempDir, `temp-${Date.now()}.webm`);
+        // Utiliser le répertoire temporaire système (compatible Vercel)
+        const tempDir = os.tmpdir();
+        const tempFilePath = path.join(tempDir, `vp-audio-temp-${Date.now()}.webm`);
         fs.writeFileSync(tempFilePath, buffer);
 
         const tempFile = {
